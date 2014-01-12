@@ -3,6 +3,37 @@ require "cuba"
 
 load File.join(File.dirname(__FILE__), "../server/all.rb")
 
+# A made up metric that combines heart rate and ekg. Every 100 data
+# points, we compute the probability that the user will have a heart
+# attack in the next 40 years.
+class MockHeartAttackProbability
+
+  # @param callback function call with every new published data point
+  def initialize(callback)
+    @callback = callback
+    @heartrates = []
+    @ekgs = []
+    @counter = 0
+  end
+
+  def add(metric, value)
+    if metric.name == "heartrate"
+      @heartrates << value.value
+    elsif metric.name == "ekg"
+      @ekgs << value.value
+    else
+      raise "Unknown metric: %s" % metric.name
+    end
+    @counter += 1
+    if @counter >= 10
+      val = Core::Value.new(Time.now.utc, rand(100) / 100.0)
+      @callback.call(val)
+      @counter = 0
+    end
+  end
+
+end
+
 class MockDatabase
 
   def initialize(dir)
@@ -22,9 +53,15 @@ class MockDatabase
 
 end
 
-Cuba.define do
+db = MockDatabase.new(File.join(File.dirname(__FILE__), "data"))
 
-  db = MockDatabase.new(File.join(File.dirname(__FILE__), "data"))
+heartattack_metric = Core::Metric.new("heartattack")
+heartattack_analytics = MockHeartAttackProbability.new(Proc.new { |val|
+                                                         puts "HA: %s" % val.inspect
+                                                         db.write(heartattack_metric, val)
+                                                       })
+
+Cuba.define do
 
   on req.post? do
 
@@ -33,7 +70,7 @@ Cuba.define do
       num = (v.to_i.to_s == v) ? v.to_i : v.to_f
       value = Core::Value.new(Time.parse(ts), num)
       db.write(metric, value)
-      #res.write "ok"
+      heartattack_analytics.add(metric, value)
     end
 
   end
