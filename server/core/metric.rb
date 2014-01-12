@@ -38,8 +38,9 @@ module Core
       if line.to_s.strip == ""
         nil
       else
-        ts, value = line.split(",", 2)
-        Value.new(Time.parse(ts), value.to_i)
+        ts, value = line.split(",", 2).map(&:strip)
+        num = value.to_i.to_s == value ? value.to_i : value.to_f
+        Value.new(Time.parse(ts), num)
       end
     end
   end

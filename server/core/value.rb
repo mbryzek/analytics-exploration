@@ -6,11 +6,15 @@ module Core
 
     def initialize(timestamp, value)
       @timestamp = Preconditions.assert_class(timestamp, Time)
-      @value = Preconditions.assert_class(value, Integer)
+      @value = value # Float or Integer
+    end
+
+    def timestamp_string
+      @timestamp.utc.strftime(Core::Constants::DATE_PATTERN)
     end
 
     def to_json(*a)
-      { :timestamp => @timestamp.utc.strftime(Core::Constants::DATE_PATTERN), :value => @value.to_s }.to_json(*a)
+      { :timestamp => timestamp_string, :value => @value }.to_json(*a)
     end
 
   end

@@ -1,6 +1,5 @@
 require 'rubygems'
 require "cuba"
-require "json"
 
 load File.join(File.dirname(__FILE__), "all.rb")
 
