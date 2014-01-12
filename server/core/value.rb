@@ -23,8 +23,8 @@ module Core
       Preconditions.assert_class(timestamp_string, String)
       Preconditions.assert_class(value_string, String)
 
-      num = (value_string.to_i.to_s == v) ? value_string.to_i : value_string.to_f
-      Core::Value.new(Time.parse(timestamp_string), num)
+      num = (value_string.to_i.to_s == value_string) ? value_string.to_i : value_string.to_f
+      Core::Value.new(metric, Time.parse(timestamp_string), num)
     end
 
   end

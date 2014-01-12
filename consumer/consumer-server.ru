@@ -1,5 +1,6 @@
 require 'rubygems'
 require "cuba"
+require 'net/http'
 
 load File.join(File.dirname(__FILE__), "../server/all.rb")
 
@@ -14,6 +15,7 @@ class MockHeartAttackProbability
     @heartrates = []
     @ekgs = []
     @counter = 0
+    @metric = Core::Metric.new("heartattack")
   end
 
   def add(value)
@@ -28,38 +30,38 @@ class MockHeartAttackProbability
     end
     @counter += 1
     if @counter >= 10
-      val = Core::Value.new(value.metric, Time.now.utc, rand(100) / 100.0)
-      @callback.call(val)
+      @callback.call(Core::Value.new(@metric, Time.now.utc, rand(100) / 100.0))
       @counter = 0
     end
   end
 
 end
 
-class MockDatabase
+class Publisher
 
-  def initialize(dir)
-    @dir = Preconditions.assert_class(dir, String)
-    Preconditions.check_state(File.directory?(@dir), "Dir[%s] not found" % dir)
+  def initialize(server_uri)
+    @server_uri = Preconditions.assert_class(server_uri, String)
   end
 
-  def write(value)
+  def publish(value)
     Preconditions.assert_class(value, Core::Value)
-
-    path = File.join(@dir, value.metric.name)
-    File.open(path, "a") do |out|
-      out << "%s,%s\n" % [value.timestamp_string, value.value]
+    metrics_url = File.join(@server_uri, "metrics", value.metric.name)
+    puts metrics_url
+    uri = URI(metrics_url)
+    begin
+      Net::HTTP.post_form(uri, 'timestamp' => value.timestamp_string, 'value' => value.value)
+    rescue Exception => e
+      puts "ERROR: %s" % e.to_s
     end
   end
 
 end
 
-db = MockDatabase.new(File.join(File.dirname(__FILE__), "data"))
+publisher = Publisher.new("http://localhost:10001")
 
-heartattack_metric = Core::Metric.new("heartattack")
-heartattack_analytics = MockHeartAttackProbability.new(Proc.new { |val|
-                                                         puts "HA: %s" % val.inspect
-                                                         db.write(heartattack_metric, val)
+heartattack_analytics = MockHeartAttackProbability.new(Proc.new { |value|
+                                                         puts "HA: %s" % value.inspect
+                                                         publisher.publish(value)
                                                        })
 
 Cuba.define do
@@ -69,7 +71,6 @@ Cuba.define do
     on "events", param("metric"), param("timestamp"), param("value") do |m, ts, v|
       metric = Core::Metric.new(m)
       value = Core::Value.parse(metric, ts, v)
-      db.write(value)
       heartattack_analytics.add(value)
     end
 
