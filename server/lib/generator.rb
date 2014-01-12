@@ -9,7 +9,7 @@ class Generator
   def generate(opts={})
     timestamp = Preconditions.assert_class_or_nil(opts.delete(:timestamp), Time) || Time.now.utc
     @last_value = generate_value
-    Core::Value.new(timestamp, @last_value)
+    Core::Value.new(@metric, timestamp, @last_value)
   end
 
   private

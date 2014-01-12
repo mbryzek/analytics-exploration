@@ -16,17 +16,19 @@ class MockHeartAttackProbability
     @counter = 0
   end
 
-  def add(metric, value)
-    if metric.name == "heartrate"
+  def add(value)
+    Preconditions.assert_class(value, Core::Value)
+
+    if value.metric.name == "heartrate"
       @heartrates << value.value
-    elsif metric.name == "ekg"
+    elsif value.metric.name == "ekg"
       @ekgs << value.value
     else
-      raise "Unknown metric: %s" % metric.name
+      raise "Unknown metric: %s" % value.metric.name
     end
     @counter += 1
     if @counter >= 10
-      val = Core::Value.new(Time.now.utc, rand(100) / 100.0)
+      val = Core::Value.new(value.metric, Time.now.utc, rand(100) / 100.0)
       @callback.call(val)
       @counter = 0
     end
@@ -41,11 +43,10 @@ class MockDatabase
     Preconditions.check_state(File.directory?(@dir), "Dir[%s] not found" % dir)
   end
 
-  def write(metric, value)
-    Preconditions.assert_class(metric, Core::Metric)
+  def write(value)
     Preconditions.assert_class(value, Core::Value)
 
-    path = File.join(@dir, metric.name)
+    path = File.join(@dir, value.metric.name)
     File.open(path, "a") do |out|
       out << "%s,%s\n" % [value.timestamp_string, value.value]
     end
@@ -67,10 +68,9 @@ Cuba.define do
 
     on "events", param("metric"), param("timestamp"), param("value") do |m, ts, v|
       metric = Core::Metric.new(m)
-      num = (v.to_i.to_s == v) ? v.to_i : v.to_f
-      value = Core::Value.new(Time.parse(ts), num)
-      db.write(metric, value)
-      heartattack_analytics.add(metric, value)
+      value = Core::Value.parse(metric, ts, v)
+      db.write(value)
+      heartattack_analytics.add(value)
     end
 
   end

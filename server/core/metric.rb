@@ -42,7 +42,7 @@ module Core
       else
         ts, value = line.split(",", 2).map(&:strip)
         num = value.to_i.to_s == value ? value.to_i : value.to_f
-        Value.new(Time.parse(ts), num)
+        Value.new(self, Time.parse(ts), num)
       end
     end
   end
