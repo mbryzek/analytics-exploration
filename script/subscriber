@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+# Example:
+# script/subscriber heartrate "http://localhost:3000/mbryzek"
+
+load File.join(File.dirname(__FILE__), "../server/all.rb")
+
+metric = Core::Metric.new(ARGV.shift || raise("Need metric name"))
+url = ARGV.shift || raise("Need url")
+
+generator = Generator.new(metric)
+
+while true
+  val = generator.generate
+  command = "curl --silent '%s?metric=%s&timestamp=%s&value=%s' > /dev/null 2>&1" % [url, metric.name, val.timestamp_string, val.value]
+  puts command
+  system(command) || puts("Error")
+  sleep 1
+end

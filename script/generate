@@ -1,5 +1,9 @@
 #!/usr/bin/env ruby
 
+# Examples:
+#   script/generate heartrate 100 60
+#   script/generate ekg 100 10
+
 load File.join(File.dirname(__FILE__), "../server/all.rb")
 
 metric = Core::Metric.new(ARGV.shift || raise("Need metric name"))
@@ -9,6 +13,8 @@ rate = (ARGV.shift || raise("Need rate (# metrics / second)")).to_i
 generator = Generator.new(metric)
 now = Time.now.to_i
 0.upto(number_seconds) do |num|
-  val = generator.generate(:timestamp => Time.at(now - num))
-  puts "%s,%s" % [val.timestamp_string, val.value]
+  0.upto(rate) do
+    val = generator.generate(:timestamp => Time.at(now - num))
+    puts "%s,%s" % [val.timestamp_string, val.value]
+  end
 end
