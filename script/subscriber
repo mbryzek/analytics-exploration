@@ -12,7 +12,7 @@ generator = Generator.new(metric)
 
 while true
   val = generator.generate
-  command = "curl --silent '%s?metric=%s&timestamp=%s&value=%s' > /dev/null 2>&1" % [url, metric.name, val.timestamp_string, val.value]
+  command = "curl -XPOST --silent '%s?metric=%s&timestamp=%s&value=%s' > /dev/null 2>&1" % [url, metric.name, val.timestamp_string, val.value]
   puts command
   system(command) || puts("Error")
   sleep 1
