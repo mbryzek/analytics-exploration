@@ -2,41 +2,13 @@
 
 load File.join(File.dirname(__FILE__), "../server/all.rb")
 
-metric = ARGV.shift || raise("Need metric name")
+metric = Core::Metric.new(ARGV.shift || raise("Need metric name"))
 number_seconds = (ARGV.shift || raise("Need total number of seconds")).to_i
 rate = (ARGV.shift || raise("Need rate (# metrics / second)")).to_i
 
+generator = Generator.new(metric)
 now = Time.now.to_i
-
-def generate_value(metric, last_value)
-  if metric ==  "heartrate"
-    current = last_value || 65
-    num = rand(20)
-    if num < 5
-      current - 1
-    elsif num >= 15
-      current + 1
-    else
-      current
-    end
-
-  elsif metric ==  "ekg"
-    current = last_value || 0
-    num = rand(10)
-    if num < 5
-      current - rand(1000) / 1000.0
-    else
-      current + rand(1000) / 1000.0
-    end
-
-  else
-    raise "Don't know how to generate a value for metric[%s]" % metric
-  end
-end
-
-value = nil
 0.upto(number_seconds) do |num|
-  value = generate_value(metric, value)
-  val = Core::Value.new(Time.at(now - num), value)
+  val = generator.generate(:timestamp => Time.at(now - num))
   puts "%s,%s" % [val.timestamp_string, val.value]
 end
