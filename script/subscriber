@@ -3,17 +3,18 @@
 # Example:
 # script/subscriber heartrate "http://localhost:3000/mbryzek"
 
+require 'net/http'
+
 load File.join(File.dirname(__FILE__), "../server/all.rb")
 
 metric = Core::Metric.new(ARGV.shift || raise("Need metric name"))
 url = ARGV.shift || raise("Need url")
 
 generator = Generator.new(metric)
+uri = URI(url)
 
 while true
   val = generator.generate
-  command = "curl -XPOST --silent '%s?metric=%s&timestamp=%s&value=%s' > /dev/null 2>&1" % [url, metric.name, val.timestamp_string, val.value]
-  puts command
-  system(command) || puts("Error")
-  sleep 1
+  Net::HTTP.post_form(uri, 'metric' => metric.name, 'timestamp' => val.timestamp_string, 'value' => val.value)
+  sleep(rand(100) / 100.0)
 end

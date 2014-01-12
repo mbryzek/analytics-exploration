@@ -4,10 +4,6 @@ require "cuba"
 load File.join(File.dirname(__FILE__), "all.rb")
 
 Cuba.define do
-  on req.head? do
-    res.headers["X-Analytics-Platform-Version"] = "0.0.1"
-  end
-
   on req.get? do
     res.headers["Content-Type"] = "application/json"
 

@@ -23,3 +23,5 @@ Create a subscriber:
   new events to this URL as they arrive. In practice, this would be
   implemented not with http but with a message queue (e.g. kafka).
 
+
+rackup consumer/consumer-server.ru -p 10000
