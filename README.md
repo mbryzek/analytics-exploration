@@ -8,20 +8,39 @@ metrics and the ability for others to consume those metrics in real
 time, contributing new metrics to the system.
 
 View all metrics:
-  http://localhost:9292/metrics
+  http://localhost:11000/metrics
 
 View one metric, including sample data:
-  http://localhost:9292/metrics/ekg
+  http://localhost:11000/metrics/ekg
 
-Generate some sample data:
-  script/generate heartrate 100 60
+Scripts to generate sample data:
+  script/generate heartrate 60
 
 Create a subscriber:
-  script/subscriber
+  script/subscribe
 
   The concept of a subscriber is that you provide a URL - we will post
   new events to this URL as they arrive. In practice, this would be
   implemented not with http but with a message queue (e.g. kafka).
 
 
+Running Locally
+===============
+
 rackup consumer/consumer-server.ru -p 10000
+rackup consumer/echo-server.ru -p 10001
+
+rackup server/data-server.ru -p 11000
+
+script/subscribe heartrate "http://localhost:10000/events"
+script/subscribe ekg "http://localhost:10000/events"
+script/subscribe heartattack "http://localhost:10001/events"
+
+script/generate heartrate 60
+script/generate ekg 10
+
+
+Dependencies
+============
+gem install cuba
+gem install json

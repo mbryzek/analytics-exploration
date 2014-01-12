@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+# Example:
+# script/subscribe heartrate "http://localhost:10000/events"
+# script/subscribe ekg "http://localhost:10000/events"
+
+require 'net/http'
+
+load File.join(File.dirname(__FILE__), "../server/all.rb")
+
+metric = Core::Metric.new(ARGV.shift || raise("Need metric name"))
+url = ARGV.shift || raise("Need url")
+
+# Make sure valid URL
+URI(url)
+
+uri = URI("http://localhost:11000/metrics/%s/subscribe" % metric.name)
+
+Net::HTTP.post_form(uri, 'url' => url)

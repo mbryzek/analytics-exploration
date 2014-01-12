@@ -41,28 +41,46 @@ class Publisher
 
   def initialize(server_uri)
     @server_uri = Preconditions.assert_class(server_uri, String)
+    @values = []
   end
 
-  def publish(value)
+  def add(value)
     Preconditions.assert_class(value, Core::Value)
-    metrics_url = File.join(@server_uri, "metrics", value.metric.name)
-    puts metrics_url
-    uri = URI(metrics_url)
-    begin
-      Net::HTTP.post_form(uri, 'timestamp' => value.timestamp_string, 'value' => value.value)
-    rescue Exception => e
-      puts "ERROR: %s" % e.to_s
+    @values << value
+  end
+
+  def publish
+    copy_of_values = @values.dup
+    @values = []
+
+    copy_of_values.each do |value|
+      metrics_url = File.join(@server_uri, "metrics", value.metric.name)
+      uri = URI(metrics_url)
+      puts "Publishing metric[%s] with value[%s]" % [value.metric.name, value.value]
+      begin
+        Net::HTTP.post_form(uri, 'timestamp' => value.timestamp_string, 'value' => value.value)
+      rescue Exception => e
+        puts "ERROR: %s" % e.to_s
+      end
     end
   end
 
 end
 
-publisher = Publisher.new("http://localhost:10001")
+publisher = Publisher.new("http://localhost:11000")
 
-heartattack_analytics = MockHeartAttackProbability.new(Proc.new { |value|
-                                                         puts "HA: %s" % value.inspect
-                                                         publisher.publish(value)
-                                                       })
+heartattack_analytics = MockHeartAttackProbability.new(Proc.new { |v| publisher.add(v) })
+
+Thread.new do
+  while true
+    begin
+      publisher.publish
+    rescue Exception => e
+      puts "ERROR: %s" % e.to_s
+    end
+    sleep(5)
+  end
+end
 
 Cuba.define do
 

@@ -1,20 +1,27 @@
 #!/usr/bin/env ruby
 
 # Examples:
-#   script/generate heartrate 100 60
-#   script/generate ekg 100 10
+#   script/generate heartrate 60
+#   script/generate ekg 10
 
 load File.join(File.dirname(__FILE__), "../server/all.rb")
 
+require 'net/http'
+
 metric = Core::Metric.new(ARGV.shift || raise("Need metric name"))
-number_seconds = (ARGV.shift || raise("Need total number of seconds")).to_i
 rate = (ARGV.shift || raise("Need rate (# metrics / second)")).to_i
 
 generator = Generator.new(metric)
-now = Time.now.to_i
-0.upto(number_seconds) do |num|
-  0.upto(rate) do
-    val = generator.generate(:timestamp => Time.at(now - num))
-    puts "%s,%s" % [val.timestamp_string, val.value]
+data_server_uri = "http://localhost:11000/metrics/%s" % metric.name
+uri = URI(data_server_uri)
+
+sleep_time = 1.0/rate
+while true
+  value = generator.generate
+  begin
+    Net::HTTP.post_form(uri, 'timestamp' => value.timestamp_string, 'value' => value.value)
+  rescue Exception => e
+    puts "ERROR: %s" % e.to_s
   end
+  sleep(sleep_time)
 end

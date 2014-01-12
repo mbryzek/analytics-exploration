@@ -16,7 +16,7 @@ class Generator
   def generate_value
     if @metric.name ==  "heartrate"
       current = @last_value || 65
-      num = rand(20)
+      num = rand()
       if num < 5
         current - 1
       elsif num >= 15
