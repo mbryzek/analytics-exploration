@@ -34,6 +34,7 @@ rackup server/data-server.ru -p 11000
 
 script/subscribe heartrate "http://localhost:10000/events"
 script/subscribe ekg "http://localhost:10000/events"
+
 script/subscribe heartattack "http://localhost:10001/events"
 
 script/generate heartrate 60
@@ -44,3 +45,41 @@ Dependencies
 ============
 gem install cuba
 gem install json
+
+
+TODO
+
+Data Size
+=========
+10k users
+1 years of data
+160 MB / user /day
+58 GB / year / user
+
+ppg signal
+  - rate: 500 hertz
+  - normalized reading from 0.000 to 1.000
+
+generate:
+  - ppg_signal @ 1 / second
+  - ppg_signal @ 1 / minute
+  - generate heartrate
+     --> some math (peak detection)
+     --> publish this at 1 / second (trailing 3 seconds)
+  - generate heartrate / minute
+  - generate heartrate / hour
+  - generate heartrate / day
+  - generate heartrate / week
+  - generate heartrate / month
+  - generate heartrate / year
+
+display heartrate for multiple users
+  - live per second view
+  - view last couple months
+
+
+Then we invent a new algorithm to compute heartrate... think through
+what happens
+
+
+
