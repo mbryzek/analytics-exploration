@@ -1,2 +1,4 @@
 compile
 run
+sbt clean
+clean
