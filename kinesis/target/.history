@@ -15,3 +15,11 @@ run
 ~run
 run
 ~run
+~compile
+run
+exit
+~compile
+~comile
+~compile
+run
+~run

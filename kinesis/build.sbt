@@ -8,6 +8,7 @@ seq(bintrayResolverSettings:_*)
 
 libraryDependencies ++= Seq(
   "io.spray" %%  "spray-json" % "1.2.5",
-  "org.json4s" %% "json4s-native" % "3.2.6",
-  "io.github.cloudify" %% "scalazon" % "0.5"
+  "io.github.cloudify" %% "scalazon" % "0.5",
+  "com.github.nscala-time" %% "nscala-time" % "0.8.0",
+  "com.novus" %% "salat" % "1.9.5"
 )
