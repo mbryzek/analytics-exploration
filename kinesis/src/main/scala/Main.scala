@@ -1,7 +1,7 @@
 import java.util.{Date, UUID}
 
 object Hi {
-  val MetricName = "heartrate-v1"
+  val MetricName = "heartrate-v3"
   val StreamName = "analytics-exploration-stream-%s".format(MetricName)
 
   def main(args: Array[String]) = {

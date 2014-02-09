@@ -2,20 +2,11 @@ import java.util.{Date, UUID}
 
 object Metric {
 
-  object Keys {
-
-    val Guid = "guid"
-    val Timestamp = "ts"
-    val Name = "n"
-    val Value = "v"
-
-  }
-
   def fromMap(map: Map[String, String]): Metric = {
-    Metric(guid = UUID.fromString(get(map, Keys.Guid)),
-         timestamp = new Date(get(map, Keys.Timestamp).toLong),
-         name = get(map, Keys.Name),
-         value = BigDecimal(get(map, Keys.Value)))
+    Metric(guid = UUID.fromString(get(map, "guid")),
+           timestamp = new Date(get(map, "timestamp").toLong),
+           name = get(map, "name"),
+           value = BigDecimal(get(map, "value")))
   }
 
   private def get(map: Map[String, String], field: String): String = {
@@ -29,11 +20,10 @@ object Metric {
 case class Metric(guid: UUID, timestamp: Date, name: String, value: BigDecimal) {
 
   def toMap: Map[String, String] = {
-    Map(Metric.Keys.Guid -> guid.toString,
-        Metric.Keys.Timestamp -> timestamp.getTime.toString,
-        Metric.Keys.Name -> name,
-        Metric.Keys.Value -> value.toString)
+    Map("guid" -> guid.toString,
+        "timestamp" -> timestamp.getTime.toString,
+        "name" -> name,
+        "value" -> value.toString)
   }
 
 }
-
