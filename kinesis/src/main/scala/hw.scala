@@ -7,20 +7,49 @@ import scala.concurrent.duration._
 import scala.concurrent.{Future, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
 import io.github.cloudify.scala.aws.kinesis.Definitions.Stream
+import java.util.UUID
 
-case class Data(value: String)
+object Data {
+
+  object Keys {
+
+    val Guid = "guid"
+    val Value = "v"
+
+  }
+
+  def fromMap(map: Map[String, String]): Data = {
+    Data(guid = UUID.fromString(get(map, Keys.Guid)),
+         value = get(map, Keys.Value))
+  }
+
+  private def get(map: Map[String, String], field: String): String = {
+    map.get(field).getOrElse {
+      sys.error("Map is missing key[%s]: %s".format(field, map.toString))
+    }
+  }
+
+}
+
+case class Data(guid: UUID, value: String) {
+
+  def toMap: Map[String, String] = {
+    Map(Data.Keys.Guid -> guid.toString,
+        Data.Keys.Value -> value)
+  }
+
+}
 
 case class MyStream(client: Client, streamName: String, stream: Stream) {
-
-  import org.json4s._
-  import org.json4s.JsonDSL._
+  import spray.json._
+  import DefaultJsonProtocol._
 
   private implicit val kinesisClient = client
 
-  def put(key: String, data: Data) {
+  def put(data: Data) {
+
     val putData = for {
-//      _ <- stream.put(ByteBuffer.wrap(compact(render(data))), key)
-      _ <- stream.put(ByteBuffer.wrap("test".getBytes), key)
+      _ <- stream.put(ByteBuffer.wrap(data.toMap.toJson.compactPrint.getBytes), streamName)
     } yield ()
     Await.result(putData, 30.seconds)
   }
@@ -37,9 +66,22 @@ case class MyStream(client: Client, streamName: String, stream: Stream) {
           implicitExecute(iterator.nextRecords)
       })
     } yield records
-    val records = Await.result(getRecords, 30.seconds)
+
+    val records = Await.result(getRecords, 30.seconds).flatMap(_.records)
     // io.github.cloudify.scala.aws.kinesis.Definitions.NextRecords
-    records.map { bytes => Data(bytes.toString) }
+    // records.map { bytes => Data(new String(bytes)) }
+    //records.flatMap { result => result.records.map { r => Data(r.data.toString) }}
+    records.map { rec =>
+      val json = new String(rec.data.array).asJson
+      Data.fromMap(json.convertTo[Map[String, String]])
+    }
+  }
+
+  def delete() {
+    val deleteStream = for {
+      _ <- stream.delete
+    } yield ()
+    Await.result(deleteStream, 30.seconds)
   }
 
 }
@@ -61,7 +103,7 @@ case class KinesisClient() {
 }
 
 object Hi {
-  val StreamName = "analytics-exploration-stream"
+  val StreamName = "analytics-exploration-stream-test-json"
 
   def main(args: Array[String]) = {
     println("Hi!")
@@ -71,21 +113,13 @@ object Hi {
     val stream = kinesisClient.createActiveStream(StreamName)
     println("active")
 
-    stream.put("test", Data("value"))
+    stream.put(Data(UUID.randomUUID, "testing"))
     println("data stored")
 
     stream.get.foreach { d =>
       println(d)
     }
 
-    /*
-    // Then we delete the stream.
-    val deleteStream = for {
-      _ <- s.delete
-    } yield ()
-      Await.result(deleteStream, 30.seconds)
-    println("stream deleted")
-    */
   }
 
 }
