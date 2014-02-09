@@ -6,6 +6,11 @@ import com.mongodb.casbah.Imports._
 import com.mongodb.casbah.MongoConnection
 import java.util.UUID
 
+/*
+ db.metrics.ensureIndex( { guid: 1 }, { unique: true } )
+ db.metrics.ensureIndex( { name: 1 } )
+ db.metrics.ensureIndex( { timestamp: 1 } )
+*/
 object MetricsDao extends SalatDAO[Metric, Int](collection = MongoConnection()("analytics-exploration-stream-test-json")("metrics")) {
 
   def findByGuid(guid: UUID): Option[Metric] = {
