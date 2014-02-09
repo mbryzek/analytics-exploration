@@ -6,39 +6,28 @@ import java.nio.ByteBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Await}
 import scala.concurrent.ExecutionContext.Implicits.global
+import io.github.cloudify.scala.aws.kinesis.Definitions.Stream
 
-object Hi {
-  val StreamName = "analytics-exploration-stream-test"
+case class Data(value: String)
 
-  def main(args: Array[String]) = {
-    println("Hi!")
-    implicit val kinesisClient = Client.fromCredentials(DefaultHomePropertiesFile)
-    println("CLIENT: " + kinesisClient)
+case class MyStream(client: Client, streamName: String, stream: Stream) {
 
-    val createStream = for {
-      s <- Kinesis.streams.create(StreamName)
-    } yield s
+  import org.json4s._
+  import org.json4s.JsonDSL._
 
-    val s = Await.result(createStream, 60.seconds)
-    println(s"stream '$StreamName' created")
+  private implicit val kinesisClient = client
 
-    Await.result(s.waitActive.retrying(60), 60.seconds)
-    println(s"stream '$StreamName' active")
-
-    val description = Await.result(s.describe, 10.seconds)
-    println(s"Status: $description.status")
-    println(s"Active: $description.isActive")
-
+  def put(key: String, data: Data) {
     val putData = for {
-      _ <- s.put(ByteBuffer.wrap("hello".getBytes), "k1")
-      _ <- s.put(ByteBuffer.wrap("how".getBytes), "k1")
-      _ <- s.put(ByteBuffer.wrap("are you?".getBytes), "k2")
+//      _ <- stream.put(ByteBuffer.wrap(compact(render(data))), key)
+      _ <- stream.put(ByteBuffer.wrap("test".getBytes), key)
     } yield ()
     Await.result(putData, 30.seconds)
-    println("data stored")
+  }
 
+  def get(): Iterable[Data] = {
     val getRecords = for {
-      shards <- s.shards.list
+      shards <- stream.shards.list
       iterators <- Future.sequence(shards.map {
         shard =>
           implicitExecute(shard.iterator)
@@ -49,14 +38,54 @@ object Hi {
       })
     } yield records
     val records = Await.result(getRecords, 30.seconds)
-    println("data retrieved: " + records)
+    // io.github.cloudify.scala.aws.kinesis.Definitions.NextRecords
+    records.map { bytes => Data(bytes.toString) }
+  }
 
+}
+
+case class KinesisClient() {
+
+  private implicit val kinesisClient = Client.fromCredentials(DefaultHomePropertiesFile)
+
+  def createActiveStream(streamName: String) = {
+    val createStream = for {
+      s <- Kinesis.streams.create(streamName)
+    } yield s
+
+    val s = Await.result(createStream, 60.seconds)
+    Await.result(s.waitActive.retrying(60), 60.seconds)
+    MyStream(kinesisClient, streamName, s)
+  }
+
+}
+
+object Hi {
+  val StreamName = "analytics-exploration-stream"
+
+  def main(args: Array[String]) = {
+    println("Hi!")
+    implicit val kinesisClient = KinesisClient()
+
+    print(s"stream '$StreamName':  creating...")
+    val stream = kinesisClient.createActiveStream(StreamName)
+    println("active")
+
+    stream.put("test", Data("value"))
+    println("data stored")
+
+    stream.get.foreach { d =>
+      println(d)
+    }
+
+    /*
     // Then we delete the stream.
     val deleteStream = for {
       _ <- s.delete
     } yield ()
       Await.result(deleteStream, 30.seconds)
     println("stream deleted")
+    */
   }
 
 }
