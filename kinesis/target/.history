@@ -3,3 +3,5 @@ run
 sbt clean
 clean
 ~compile
+run
+~run
